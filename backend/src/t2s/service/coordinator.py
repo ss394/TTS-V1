@@ -882,8 +882,8 @@ class Coordinator:
         if self.ctx is None or self.best_id is None:
             return
         best = self.archive[self.best_id]
-        if best.keys is None:
-            return
+        if best.keys is None or not self._current(best):  # only a chromosome of this context (the islands also skip
+            return                                       # one of another length: worker.fitting_keys)
         for w in self.workers:
             if w.role == "island" and w.ctx_id == self.ctx.ctx_id:
                 w.cmd_q.put(("inject", self.ctx.ctx_id, [best.keys]))

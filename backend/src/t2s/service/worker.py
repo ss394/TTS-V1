@@ -87,6 +87,14 @@ def constructive_seeds(ctx, dec, which: int | None = None):
     return out
 
 
+def fitting_keys(keys_list, dim: int) -> list:
+    """Migrants an island can take: chromosomes of its own length. One of another length (a layout from another
+    context, e.g. a Stage 2 chromosome — 3 extra keys — sent to a Stage 1 island) is skipped: placed in the
+    population it broke every later crossover."""
+    out = [np.asarray(k, float) for k in keys_list or []]
+    return [k for k in out if k.shape == (dim,)]
+
+
 class BrkgaIsland:
     VARIANTS = [{"elite_frac": 0.2, "mutant_frac": 0.15, "bias": 0.7}, {"elite_frac": 0.15, "mutant_frac": 0.2, "bias": 0.65},
                 {"elite_frac": 0.25, "mutant_frac": 0.1, "bias": 0.75}, {"elite_frac": 0.2, "mutant_frac": 0.25, "bias": 0.6}]
@@ -111,11 +119,12 @@ class BrkgaIsland:
 
     def inject(self, keys_list):
         from ..optimise.brkga import sort_key
+        keys_list = fitting_keys(keys_list, self.ev.dim)
         if not self.state.cands:
             return 0
         order = sorted(range(len(self.state.cands)), key=lambda i: sort_key(self.state.cands[i]))
         for slot, keys in zip(reversed(order), keys_list):
-            c = self.ev.evaluate(np.asarray(keys, float))
+            c = self.ev.evaluate(keys)
             self.state.cands[slot] = c
             self.state.pop[slot] = c.keys
             self.state.evaluations += 1
@@ -146,8 +155,9 @@ class LahcIsland:
 
     def inject(self, keys_list):
         from ..optimise.brkga import sort_key
+        keys_list = fitting_keys(keys_list, self.ev.dim)
         if keys_list:
-            c = self.ev.evaluate(np.asarray(keys_list[0], float))
+            c = self.ev.evaluate(keys_list[0])
             self.state.evaluations += 1
             if sort_key(c) < sort_key(self.state.current):
                 self.state.current = c
