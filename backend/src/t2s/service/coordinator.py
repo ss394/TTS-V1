@@ -971,8 +971,15 @@ class Coordinator:
             g, h, c, raw, nrm = best_cand
             self.candidate = self._candidate_json(h, c["poses"], raw, g, nrm)
             self.broadcast("layout.candidate", {"layout": self.candidate}, only=lambda cl: cl.want_candidates)
-        self._dispatch()
+        self._continue_search()
         self._dispatch_validation()
+
+    def _continue_search(self) -> None:
+        """Give the island that just reported its next job — only while searching. (It used to dispatch whatever the
+        status, so after Pause or CONVERGED the islands kept searching forever: CPU busy, new layouts arriving, the
+        best changing under a paused search.)"""
+        if self.run_status == "SEARCHING":
+            self._dispatch()
 
     def _on_validated(self, wid, job, ctx_id, summary, extra=None) -> None:
         w = self.workers[wid]
